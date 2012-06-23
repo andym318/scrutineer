@@ -12,6 +12,7 @@ import org.apache.log4j.Level;
 import org.apache.log4j.LogManager;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.node.Node;
+import org.elasticsearch.common.settings.ImmutableSettings;
 
 import com.aconex.scrutineer.elasticsearch.ElasticSearchDownloader;
 import com.aconex.scrutineer.elasticsearch.ElasticSearchIdAndVersionStream;
@@ -98,8 +99,23 @@ public class Scrutineer {
 		return options.numeric ? LongIdAndVersion.FACTORY : StringIdAndVersion.FACTORY;
 	}
 
+    ImmutableSettings.Builder createElasticSearchImmutableSettings(ScrutineerCommandLineOptions options) {
+	ImmutableSettings.Builder settings = ImmutableSettings.settingsBuilder();
+	if (options.cloud_aws_access_key.length() > 0)
+	{
+		settings.put("cloud.aws.access_key", options.cloud_aws_access_key);
+		settings.put("cloud.aws.secret_key", options.cloud_aws_secret_key);
+		settings.put("cloud.aws.region", options.cloud_aws_region);
+		settings.put("discovery.type", "ec2");
+	}
+	return settings;
+    }
+
     ElasticSearchIdAndVersionStream createElasticSearchIdAndVersionStream(ScrutineerCommandLineOptions options) {
-        this.node = nodeBuilder().client(true).clusterName(options.clusterName).node();
+	this.node = nodeBuilder()
+		.clusterName(options.clusterName)
+		.client(true).local(false)
+		.settings(createElasticSearchImmutableSettings(options).build()).node(); 
         this.client = node.client();
         return new ElasticSearchIdAndVersionStream(new ElasticSearchDownloader(client, options.indexName, options.query, idAndVersionFactory), new ElasticSearchSorter(createSorter()), new IteratorFactory(idAndVersionFactory), SystemUtils.getJavaIoTmpDir().getAbsolutePath());
     }
@@ -145,6 +161,9 @@ public class Scrutineer {
         @Parameter(names = "--query", description = "ElasticSearch query to create Secondary stream.  Not required to be ordered", required = false)
         public String query = "*";
 
+	@Parameter(names = "--jsonquery", description = "JSON ElasticSearch query to create Secondary stream.  Not required to be ordered", required = false)
+	public String jsonquery = "{  \"query\": { \"match_all\": {} } }";
+        
         @Parameter(names = "--jdbcDriverClass", description = "FQN of the JDBC Driver class", required = true)
         public String jdbcDriverClass;
 
@@ -162,6 +181,16 @@ public class Scrutineer {
 
         @Parameter(names = "--numeric", description = "JDBC query is sorted numerically")
         public boolean numeric = false;
+
+	@Parameter(names = "--cloud.aws.access_key", description = "AWS access key", required = false)
+	public String cloud_aws_access_key;
+
+	@Parameter(names = "--cloud.aws.secret_key", description = "AWS secret key", required = false)
+	public String cloud_aws_secret_key;
+
+	@Parameter(names = "--cloud.aws.region", description = "AWS region", required = false)
+	public String cloud_aws_region;
+        
     }
     // CHECKSTYLE:ON
 
