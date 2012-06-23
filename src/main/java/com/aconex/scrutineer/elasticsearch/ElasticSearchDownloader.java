@@ -14,6 +14,7 @@ import org.elasticsearch.action.search.SearchRequestBuilder;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.index.query.QueryBuilders;
 import org.elasticsearch.index.query.QueryStringQueryBuilder;
+import org.elasticsearch.index.query.QueryBuilder;
 import org.elasticsearch.search.SearchHit;
 import org.slf4j.Logger;
 
@@ -28,12 +29,14 @@ public class ElasticSearchDownloader {
     private final Client client;
     private final String indexName;
     private final String query;
+    private final Boolean jsonQueryFormat;
 	private final IdAndVersionFactory idAndVersionFactory;
 
-    public ElasticSearchDownloader(Client client, String indexName, String query, IdAndVersionFactory idAndVersionFactory) {
+    public ElasticSearchDownloader(Client client, String indexName, String query, Boolean jsonQueryFormat, IdAndVersionFactory idAndVersionFactory) {
         this.client = client;
         this.indexName = indexName;
         this.query = query;
+        this.jsonQueryFormat = jsonQueryFormat;
         this.idAndVersionFactory = idAndVersionFactory;
     }
 
@@ -72,8 +75,15 @@ public class ElasticSearchDownloader {
         return hits.length > 0;
     }
 
-    QueryStringQueryBuilder createQuery() {
-        return QueryBuilders.queryString(query).defaultOperator(QueryStringQueryBuilder.Operator.AND).defaultField("_all");
+    QueryBuilder createQuery() {
+	if (jsonQueryFormat)
+	{
+		return QueryBuilders.wrapperQuery(query);
+	}
+	else
+	{
+		return QueryBuilders.queryString(query).defaultOperator(QueryStringQueryBuilder.Operator.AND).defaultField("_all");
+	}
     }
 
     @SuppressWarnings("PMD.NcssMethodCount")

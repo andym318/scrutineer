@@ -101,7 +101,7 @@ public class Scrutineer {
 
     ImmutableSettings.Builder createElasticSearchImmutableSettings(ScrutineerCommandLineOptions options) {
 	ImmutableSettings.Builder settings = ImmutableSettings.settingsBuilder();
-	if (options.cloud_aws_access_key.length() > 0)
+	if (null != options.cloud_aws_access_key && options.cloud_aws_access_key.length() > 0)
 	{
 		settings.put("cloud.aws.access_key", options.cloud_aws_access_key);
 		settings.put("cloud.aws.secret_key", options.cloud_aws_secret_key);
@@ -117,7 +117,7 @@ public class Scrutineer {
 		.client(true).local(false)
 		.settings(createElasticSearchImmutableSettings(options).build()).node(); 
         this.client = node.client();
-        return new ElasticSearchIdAndVersionStream(new ElasticSearchDownloader(client, options.indexName, options.query, idAndVersionFactory), new ElasticSearchSorter(createSorter()), new IteratorFactory(idAndVersionFactory), SystemUtils.getJavaIoTmpDir().getAbsolutePath());
+        return new ElasticSearchIdAndVersionStream(new ElasticSearchDownloader(client, options.indexName, options.query, options.jsonQueryFormat, idAndVersionFactory), new ElasticSearchSorter(createSorter()), new IteratorFactory(idAndVersionFactory), SystemUtils.getJavaIoTmpDir().getAbsolutePath());
     }
 
     private Sorter<IdAndVersion> createSorter() {
@@ -161,8 +161,8 @@ public class Scrutineer {
         @Parameter(names = "--query", description = "ElasticSearch query to create Secondary stream.  Not required to be ordered", required = false)
         public String query = "*";
 
-	@Parameter(names = "--jsonquery", description = "JSON ElasticSearch query to create Secondary stream.  Not required to be ordered", required = false)
-	public String jsonquery = "{  \"query\": { \"match_all\": {} } }";
+	@Parameter(names = "--jsonqueryformat", description = "When true query is expected in JSON format", required = false)
+	public boolean  jsonQueryFormat = false;
         
         @Parameter(names = "--jdbcDriverClass", description = "FQN of the JDBC Driver class", required = true)
         public String jdbcDriverClass;
